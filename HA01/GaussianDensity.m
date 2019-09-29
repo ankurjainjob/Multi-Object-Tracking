@@ -193,7 +193,7 @@ classdef GaussianDensity
             %               (variable dimension) x (variable dimension) x
             %               (number of Gaussians) matrix  
             %       threshold: merging threshold --- scalar
-            %INPUT: w_hat: normalised weight of Gaussian components in
+            %OUTPUT: w_hat: normalised weight of Gaussian components in
             %       logarithmic scale after merging --- (number of
             %       Gaussians) x 1 vector  
             %       states_hat: structure array of size (number of Gaussian

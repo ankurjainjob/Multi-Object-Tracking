@@ -1,7 +1,7 @@
 %Choose object detection probability
-P_D = 0.9;
+P_D = 0.6;
 %Choose clutter rate
-lambda_c = 10;
+lambda_c = 10 *5;
 %Create sensor model
 range_c = [-1000 1000;-1000 1000];
 sensor_model = modelgen.sensormodel(P_D,lambda_c,range_c);
@@ -10,9 +10,13 @@ sensor_model = modelgen.sensormodel(P_D,lambda_c,range_c);
 nbirths = 1;
 K = 100;
 initial_state.x = [0; 0; 10; 10];
-initial_state.P = eye(4);
 ground_truth = modelgen.groundtruth(nbirths,initial_state.x,1,K+1,K);
-        
+   
+% initial guess
+initial_state.x = [10; 10; 0; 0];
+initial_state.P = eye(4) * 300^2;
+
+
 %Create linear motion model
 T = 1;
 sigma_q = 5;
@@ -37,18 +41,25 @@ tracker = singleobjectracker();
 tracker = tracker.initialize(density_class_handle,P_G,meas_model.d,w_min,merging_threshold,M);
 
 %Nearest neighbour filter
-nearestNeighborEstimates = nearestNeighbourFilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
+[x_NN, P_NN] = nearestNeighbourFilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
 
 %Probabilistic data association filter
-probDataAssocEstimates = probDataAssocFilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
+[x_PDA, P_PDA] = probDataAssocFilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
 
 %Gaussian sum filter
-GaussianSumEstimates = GaussianSumFilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
+[x_GSF, P_GSF] = GaussianSumFilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
+
+
+est = struct('x',x_GSF, 'P', P_GSF)
+animate = Animate_2D_tracking();
+animate.animate(est, tracker, initial_state, measdata, meas_model, range_c);
+
+
 
 true_state = cell2mat(objectdata.X');
-NN_estimated_state = cell2mat(nearestNeighborEstimates');
-PDA_estimated_state = cell2mat(probDataAssocEstimates');
-GS_estimated_state = cell2mat(GaussianSumEstimates');
+NN_estimated_state = cell2mat(x_NN');
+PDA_estimated_state = cell2mat(x_PDA');
+GS_estimated_state = cell2mat(x_GSF');
 
 figure
 hold on

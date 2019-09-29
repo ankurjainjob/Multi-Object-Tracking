@@ -45,11 +45,14 @@ classdef hypothesisReduction
             %       capping) x 1 vector 
             %       multiHypotheses: (number of hypotheses after capping) x
             %       1 structure 
+            
+            % sort by descending hypothesis weight
             [w_sorted,idx] = sort(hypothesesWeight,'descend');
+            % keep best M hypothesis
+            M = min(M,length(hypothesesWeight));
             idx_keep = idx(1:M);
-            % select
-            hypothesesWeight = hypothesesWeight(idx_keep);
             % select indices
+            hypothesesWeight = hypothesesWeight(idx_keep);
             multiHypotheses = multiHypotheses(idx_keep);
         end
 

@@ -54,7 +54,7 @@ classdef singleobjectracker
             obj.reduction.M = M;
         end
         
-        function estimates = nearestNeighbourFilter(obj, state, Z, sensormodel, motionmodel, measmodel)
+        function [estimates_x, estimates_P] = nearestNeighbourFilter(obj, state, Z, sensormodel, motionmodel, measmodel)
             %NEARESTNEIGHBOURFILTER tracks a single object using nearest
             %neighbor association 
             %INPUT: state: a structure with two fields:
@@ -70,11 +70,53 @@ classdef singleobjectracker
             %OUTPUT:estimates: cell array of size (total tracking time, 1),
             %       each cell stores estimated object state of size (object
             %       state dimension) x 1   
-
+            
+            N = numel(Z);
+            
+            % allocate memory
+            estimates_x = cell(N,1);
+            estimates_P = cell(N,1);
+            
+            % first predicted state is the prior distribution
+            state_pred = state;
+            
+            for i=1:N
+                z = Z{i};
+                % Apply gating
+                [z_ingate, ~] = obj.density.ellipsoidalGating(state_pred, z, measmodel, obj.gating.size);
+                
+                % number of hypothesis
+                mk = size(z_ingate,2) + 1;
+                
+                % calculate predicted likelihood = N(z; zbar, S) => scalar value
+                predicted_likelihood = exp(obj.density.predictedLikelihood(state_pred,z_ingate,measmodel));
+                
+                % EVALUATE HYPOTHESIS
+                % detection
+                w_theta_k = sensormodel.P_D * predicted_likelihood / sensormodel.intensity_c;
+                % missdetection
+                w_theta_0 = 1 - sensormodel.P_D;
+                
+                % UPDATE
+                [max_w_theta, max_theta] = max(w_theta_k);
+                if mk==1 || w_theta_0 > max_w_theta
+                    state_upd = state_pred;
+                else
+                    z_NN = z_ingate(:,max_theta);    % nearest neighbour measurement
+                    state_upd = obj.density.update(state_pred, z_NN, measmodel);
+                end
+                
+                % ESTIMATES
+                estimates_x{i} = state_upd.x;
+                estimates_P{i} = state_upd.P;
+                
+                % PREDICTION
+                state_pred = obj.density.predict(state_upd, motionmodel);
+            end
         end
         
         
-        function estimates = probDataAssocFilter(obj, state, Z, sensormodel, motionmodel, measmodel)
+        function [estimates_x, estimates_P] = probDataAssocFilter(obj, state, Z, sensormodel, motionmodel, measmodel)
             %PROBDATAASSOCFILTER tracks a single object using probalistic
             %data association 
             %INPUT: state: a structure with two fields:
@@ -90,10 +132,61 @@ classdef singleobjectracker
             %OUTPUT:estimates: cell array of size (total tracking time, 1),
             %       each cell stores estimated object state of size (object
             %       state dimension) x 1  
+            N = numel(Z);
             
+            % allocate memory
+            estimates_x = cell(N,1);
+            estimates_P = cell(N,1);
+            
+            % first predicted state is the prior distribution
+            state_pred = state;
+            
+            for i=1:N
+                % read measurements
+                z = Z{i};
+                
+                % Apply gating
+                [z_ingate, ~] = obj.density.ellipsoidalGating(state_pred, z, measmodel, obj.gating.size);
+                
+                % number of hypothesis: detections + missdetection
+                mk = size(z_ingate,2) + 1;
+                
+                % UPDATE
+                % create object detection hypotheses for each detection inside the gate;
+                w_new = [];
+                p_new = struct('x',{},'P',{});
+                
+                w(1) = log(1 - sensormodel.P_D);
+                p(1) = state_pred;
+                for ik=1:mk-1
+                    pred_likelihood_log = obj.density.predictedLikelihood(state_pred,z_ingate(:,ik),measmodel);
+                    w(ik+1,1) = pred_likelihood_log + log(sensormodel.P_D/sensormodel.intensity_c); % = log(Pd*pll/intensity_c)
+                    p(ik+1,1) = obj.density.update(state_pred, z_ingate(:,ik), measmodel);
+                end
+                
+                % normalise hypothesis weights;
+                w = normalizeLogWeights(w);
+                
+                % prune hypotheses with small weights, and then re-normalise the weights.
+                [w,p] = hypothesisReduction.prune( w, p, obj.reduction.w_min );
+                w = normalizeLogWeights(w);
+                
+                % merge different hypotheses using Gaussian moment matching;
+                [w,p] = hypothesisReduction.merge( w, p, obj.reduction.merging_threshold, obj.density );
+                
+                % filter best hypothesis
+                [w,p] = hypothesisReduction.cap( w, p, 1 );
+                
+                % extract object state estimate;
+                estimates_x{i} = p.x;
+                estimates_P{i} = p.P;
+                
+                % PREDICTION
+                state_pred = obj.density.predict(p, motionmodel);
+            end
         end
         
-        function estimates = GaussianSumFilter(obj, state, Z, sensormodel, motionmodel, measmodel)
+        function [estimates_x, estimates_P] = GaussianSumFilter(obj, state, Z, sensormodel, motionmodel, measmodel)
             %GAUSSIANSUMFILTER tracks a single object using Gaussian sum
             %filtering
             %INPUT: state: a structure with two fields:
@@ -108,9 +201,74 @@ classdef singleobjectracker
             %       time step)  
             %OUTPUT:estimates: cell array of size (total tracking time, 1),
             %       each cell stores estimated object state of size (object
-            %       state dimension) x 1  
+            %       state dimension) x 1
+            
+            N = numel(Z);
+            
+            % allocate memory
+            estimates_x = cell(N,1);
+            estimates_P = cell(N,1);
+            
+            % first predicted state is the prior distribution
+            p_old = state;
+            w_old = 0;
+            
+            for i=1:N
+                % read measurements
+                z = Z{i};
 
+                % number of old hypothesis
+                mk_old = size(w_old,1);
+                
+                % Erase new weight and state vectors
+                w_new = [];
+                p_new = struct('x',{},'P',{});
+                
+                % Update
+                for i_old = 1:mk_old
+                    % for each hypothesis, perform ellipsoidal gating and only 
+                    % create object detection hypotheses for detections inside the gate;
+                    [z_ingate, ~] = obj.density.ellipsoidalGating(p_old(i_old), z, measmodel, obj.gating.size);
+                    mk_new = size(z_ingate,2) + 1;
+                    for i_new = 1:mk_new-1
+                        pred_likelihood_log = obj.density.predictedLikelihood(p_old(i_old),z_ingate(:,i_new),measmodel);
+                        w_new(end+1,1) = w_old(i_old) + pred_likelihood_log + log(sensormodel.P_D/sensormodel.intensity_c);
+                        p_new(end+1,1) = obj.density.update(p_old(i_old), z_ingate(:,i_new), measmodel);
+                    end
+                    % for each hypothesis, create missed detection hypothesis;
+                    w_new(end+1,1) = w_old(i_old) + log(1 - sensormodel.P_D);
+                    p_new(end+1,1) = p_old(i_old);
+                end
+                
+                % normalise hypothesis weights;
+                w_new = normalizeLogWeights(w_new);
+
+                % prune hypotheses with small weights, and then re-normalise the weights.
+                [w_new,p_new] = hypothesisReduction.prune( w_new, p_new, obj.reduction.w_min );
+                w_new = normalizeLogWeights(w_new);
+
+                % merge different hypotheses using Gaussian moment matching;
+                [w_new,p_new] = hypothesisReduction.merge( w_new, p_new, obj.reduction.merging_threshold, obj.density );
+
+                % cap the number of the hypotheses, and then re-normalise the weights;
+                [w_new,p_new] = hypothesisReduction.cap( w_new, p_new, obj.reduction.M );
+
+                % extract object state estimate using the most probably hypothesis estimation;
+                [~,best_w_idx] = max(w_new);
+                estimates_x{i} = p_new(best_w_idx).x;
+                estimates_P{i} = p_new(best_w_idx).P;
+
+                % update
+                w_old = w_new;
+                p_old = p_new;
+                
+                % for each hypothesis, perform prediction.
+                for i_old = 1:length(w_old)
+                    p_old(i_old) = obj.density.predict(p_old(i_old), motionmodel);
+                end   
+            end
         end
+        
         
     end
 end
