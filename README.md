@@ -6,6 +6,7 @@ Implementation of the following algorithms:
 - [x] Nearest Neighbors Filter (NN)
 - [x] Probabilistic Data Association Filter (PDA)
 - [x] Gaussian Sum Filter (GSF)
+
 These algorithms are located in [HA01/singleobjectracker.m](https://github.com/lucasrm25/Multi-Object-Tracking/blob/HA01_implementation/HA01/singleobjectracker.m)
 
 ## Home-Assignment 02 (HA02) - Tracking n Objects in Clutter
