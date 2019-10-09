@@ -23,7 +23,12 @@ sigma_q = 5;
 motion_model = motionmodel.cvmodel(T,sigma_q);
         
 %Create linear measurement model
-sigma_r = 10;
+sigma_rren1oir2
+
+
+
+
+   q@
 meas_model = measmodel.cvmeasmodel(sigma_r);
 
 %Generate true object data (noisy or noiseless) and measurement data
