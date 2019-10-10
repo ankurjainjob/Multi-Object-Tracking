@@ -13,10 +13,14 @@ These algorithms are located in [HA01/singleobjectracker.m](https://github.com/l
 Implementation of the following algorithms:
 - [ ] Global Nearest Neighbors Filter (GNN)
 - [ ] Joint Probabilistic Data Association Filter (JPDA)
-- [ ] Multi Hypothesis Tracker (MHT)
+- [ ] Track-oriented Multiple Hypothesis Tracker (MHT)
 
 
 ## Home-Assignment 03 (HA03) - Random Finite Sets
-
+Implementation of the following algorithms:
+- [ ] PHD filtering
 
 ## Home-Assignment 04 (HA04) - MOT Using Conjugate Priors
+Implementation of the following algorithms:
+- [ ] Multi-Bernoulli Mixture filter
+- [ ] Poisson Multi-Bernoulli Mixture filter

@@ -32,9 +32,7 @@ classdef singleobjectracker
             %INITIATOR initializes singleobjectracker class
             %INPUT: density_class_handle: density class handle
             %       P_G: gating size in decimal --- scalar
-            %            in this case, P_G = Pr[ d^2 <= G ] = significance
-            %            level. The larger P_G, the G. P_G here is the
-            %            significance level. Common values is 0.99
+            %            in this case, P_G = Pr
             %       m_d: measurement dimension --- scalar
             %       wmin: allowed minimum hypothesis weight --- scalar
             %       merging_threshold: merging threshold --- scalar
