@@ -16,6 +16,11 @@ Implementation of the following algorithms:
 
 
 ## Home-Assignment 03 (HA03) - Random Finite Sets
-
+- [ ] PHD filter
+- [ ] HM-PHD filter
 
 ## Home-Assignment 04 (HA04) - MOT Using Conjugate Priors
+- [ ] MBM filter
+- [ ] PMBM filter
+
+## Home-Assigment 05 (HA05) - Extended Object Tracking
