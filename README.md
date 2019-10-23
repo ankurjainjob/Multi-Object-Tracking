@@ -17,10 +17,11 @@ Implementation of the following algorithms:
 
 
 ## Home-Assignment 03 (HA03) - Random Finite Sets
-Implementation of the following algorithms:
-- [ ] PHD filtering
+- [ ] Probability Hypothesis Density Filter (PHD)
+- [ ] Gaussian Mixture Probability Hypothesis Density Filter (GM-PHD)
 
 ## Home-Assignment 04 (HA04) - MOT Using Conjugate Priors
-Implementation of the following algorithms:
-- [ ] Multi-Bernoulli Mixture filter
-- [ ] Poisson Multi-Bernoulli Mixture filter
+- [ ] Multi-Bernoulli Mixture filter (MBM)
+- [ ] Poisson Multi-Bernoulli Mixture filter (PMBM)
+
+## Home-Assigment 05 (HA05) - Extended Object Tracking
