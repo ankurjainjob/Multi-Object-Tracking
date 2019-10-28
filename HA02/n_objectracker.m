@@ -29,7 +29,7 @@ classdef n_objectracker
     methods
         
         function obj = initialize(obj,density_class_handle,P_G,m_d,w_min,merging_threshold,M)
-            %INITIATOR initializes n_objectracker class
+            %INITIATOR initializes n_objectrackersei se ela acabou operando hoje ou nao, ou sei la o que class
             %INPUT: density_class_handle: density class handle
             %       P_D: object detection probability
             %       P_G: gating size in decimal --- scalar
@@ -54,7 +54,7 @@ classdef n_objectracker
             obj.reduction.M = M;
         end
         
-        function estimates = GNNfilter(obj, states, Z, sensormodel, motionmodel, measmodel)
+        function [estimates_x, estimates_P] = GNNfilter(obj, states, Z, sensormodel, motionmodel, measmodel)
             %GNNFILTER tracks n object using global nearest neighbor
             %association 
             %INPUT: obj: an instantiation of n_objectracker class
@@ -72,7 +72,79 @@ classdef n_objectracker
             %OUTPUT:estimates: cell array of size (total tracking time, 1),
             %       each cell stores estimated object state of size (object
             %       state dimension) x (number of objects)
+            
+            % STEPS FOR MOT
+            % 0. perform prediction of each prior
+            % 1. implement ellipsoidal gating for each predicted local hypothesis seperately, see Note below for details;
+            % 2. construct 2D cost matrix of size (number of objects, number of measurements that at least fall inside the gates + number of objects);
+            % 3. find the best assignment matrix using a 2D assignment solver;
+            % 4. create new local hypotheses according to the best assignment matrix obtained;
+            % 5. extract object state estimates;
+            % 6. predict each local hypothesis.
+            
+            
+            % number of time steps
+            N = numel(Z);
+            % number of objects
+            n = numel(states);
+            % allocate memory
+            estimates_x = cell(N,1);
+            estimates_P = cell(N,1);
+            
+            for k=1:N
+                % measurements at time t=k
+                z = Z{k};
+                % number of measurements
+                m = size(z,2);
 
+                % 1. implement ellipsoidal gating for each predicted local hypothesis seperately, see Note below for details; 
+                idx_z_ingate = zeros(n,m);
+                for i=1:n
+                    [~, idx_z_ingate(i,:)] = obj.density.ellipsoidalGating(states(i), z, measmodel, obj.gating.size);
+                end
+                % 1.1 disconsider measurements that do not fall inside any object gates
+                idx_keep = sum(idx_z_ingate,1) > 0;
+                z = z(:,idx_keep);
+                idx_z_ingate = idx_z_ingate(:,idx_keep);
+                m = sum(idx_keep);
+                
+                % 2. construct 2D cost matrix of size (number of objects, number of measurements that at least fall inside the gates + number of objects);
+                L = inf(n,m+n);
+                for i=1:n
+                    for im = find(idx_z_ingate(i,:))
+                        S_i_h    = measmodel.H(states(i).x) * states(i).P * measmodel.H(states(i).x).';
+                        zbar_i_h = measmodel.h(states(i).x);
+                        L(i,im) = -( log(sensormodel.P_D/sensormodel.intensity_c) ...
+                                     -1/2*log(det(2*pi*S_i_h)) ...
+                                     -1/2*(z(:,im) - zbar_i_h).' * inv(S_i_h) * (z(:,im) - zbar_i_h)  );
+                    end
+                    L(i,m+i) = - log(1-sensormodel.P_D);
+                end
+                
+                % 3. find the best assignment matrix using a 2D assignment solver;
+                % Murty's algorithm
+                [col4row,~,gain] = assign2D(L);
+                assert(gain~=-1, 'Assignment problem is unfeasible');
+                
+                % 4. create new local hypotheses according to the best assignment matrix obtained;
+                for i=1:n
+                    % object i was assigned to a meas. => KALMAN UPDATE.
+                    % otherwise updated density = predicted density
+                    if col4row(i) <= m   
+                        states(i) = obj.density.update(states(i), z(:,col4row(i)), measmodel);
+                    end
+                end
+                
+                % 5. extract object state estimates;
+                for i=1:n
+                    estimates_x{k}(:,i) = states(i).x;
+                    estimates_P{k}(:,:,i) = states(i).P;
+                end
+                
+                % 6. predict each local hypothesis.
+                states = arrayfun(@(s) obj.density.predict(s,motionmodel), states );
+            end
+            
         end
         
 
@@ -122,81 +194,3 @@ classdef n_objectracker
     end
 end
 
-
-
-
-
-
-% %Choose object detection probability
-% P_D = 0.9;
-% %Choose clutter rate
-% lambda_c = 10;
-% 
-% %Choose linear or nonlinear scenario
-% scenario_type = 'linear';
-% 
-% %Creat sensor model
-% range_c = [-1000 1000;-1000 1000];
-% sensor_model = modelgen.sensormodel(P_D,lambda_c,range_c);
-%         
-% %Creat linear motion model
-% T = 1;
-% sigma_q = 5;
-% motion_model = motionmodel.cvmodel(T,sigma_q);
-%         
-% %Create linear measurement model
-% sigma_r = 10;
-% meas_model = measmodel.cvmeasmodel(sigma_r);
-%         
-% %Creat ground truth model
-% nbirths = 5;
-% K = 100;
-% tbirth = zeros(nbirths,1);
-% tdeath = zeros(nbirths,1);
-%         
-% initial_state = repmat(struct('x',[],'P',eye(motion_model.d)),[1,nbirths]);
-%         
-% initial_state(1).x = [0; 0; 0; -10];        tbirth(1) = 1;   tdeath(1) = K;
-% initial_state(2).x = [400; -600; -10; 5];   tbirth(2) = 1;   tdeath(2) = K;
-% initial_state(3).x = [-800; -200; 20; -5];  tbirth(3) = 1;   tdeath(3) = K;
-% initial_state(4).x = [0; 0; 7.5; -5];       tbirth(4) = 1;   tdeath(4) = K;
-% initial_state(5).x = [-200; 800; -3; -15];  tbirth(5) = 1;   tdeath(5) = K;
-% 
-% %% Generate true object data (noisy or noiseless) and measurement data
-% ground_truth = modelgen.groundtruth(nbirths,[initial_state.x],tbirth,tdeath,K);
-% ifnoisy = 0;
-% objectdata = objectdatagen(ground_truth,motion_model,ifnoisy);
-% measdata = measdatagen(objectdata,sensor_model,meas_model);
-% 
-% %% N-object tracker parameter setting
-% P_G = 0.999;            %gating size in percentage
-% w_min = 1e-3;           %hypothesis pruning threshold
-% merging_threshold = 2;  %hypothesis merging threshold
-% M = 100;                %maximum number of hypotheses kept in TOMHT
-% density_class_handle = feval(@GaussianDensity);    %density class handle
-% tracker = n_objectracker();
-% tracker = tracker.initialize(density_class_handle,P_G,meas_model.d,w_min,merging_threshold,M);
-% 
-% GNNestimates = GNNfilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
-% JPDAestimates = JPDAfilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
-% TOMHTestimates = TOMHT(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
-%
-% figure
-% hold on
-% grid on
-% 
-% for i = 1:nbirths
-%     h1 = plot(cell2mat(cellfun(@(x) x(1,i), objectdata.X, 'UniformOutput', false)), ...
-%         cell2mat(cellfun(@(x) x(2,i), objectdata.X, 'UniformOutput', false)), 'g', 'Linewidth', 2);
-%     h2 = plot(cell2mat(cellfun(@(x) x(1,i), GNNestimates, 'UniformOutput', false)), ...
-%         cell2mat(cellfun(@(x) x(2,i), GNNestimates, 'UniformOutput', false)), 'r-s', 'Linewidth', 1);
-% end
-% 
-% xlabel('x'); ylabel('y')
-% 
-% xlim([-1000 1000])
-% ylim([-1000 1000])
-% 
-% legend([h1 h2],'Ground Truth','GNN Estimates', 'Location', 'best')
-% 
-% set(gca,'FontSize',12) 

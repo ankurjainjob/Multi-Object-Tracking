@@ -52,7 +52,7 @@ tracker = tracker.initialize(density_class_handle,P_G,meas_model.d,w_min,merging
 
 est = struct('x',x_GSF, 'P', P_GSF)
 animate = Animate_2D_tracking();
-animate.animate(est, tracker, initial_state, measdata, meas_model, range_c);
+animate.animate(est, initial_state, measdata, meas_model, range_c);
 
 
 

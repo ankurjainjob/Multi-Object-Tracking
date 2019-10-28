@@ -67,6 +67,8 @@ classdef Animate_2D_tracking
             xlim(range_c(1,:));
             ylim(range_c(2,:));
             
+            n = numel(initial_state);
+            
             % plot meas data
             meas_x = measdata{1}(1,:);
             meas_y = measdata{1}(2,:);
@@ -74,35 +76,41 @@ classdef Animate_2D_tracking
             pl_meas.XDataSource = 'meas_x';
             pl_meas.YDataSource = 'meas_y';
             
-            [zk,S] = obj.estimated_meas(initial_state.x,initial_state.P,measmodel);
+            for i=1:n
+                [zk,S] = obj.estimated_meas(initial_state(i).x,initial_state(i).P,measmodel);
+
+                % plot estimated covariance
+                ellipse{i} = obj.sigmaEllipse2D(zk, S);
+                S_x{i} = ellipse{i}(1,:); 
+                S_y{i} = ellipse{i}(2,:); 
+                pl_cov  = plot(S_x{i},S_y{i});
+                pl_cov.XDataSource = ['S_x{',num2str(i),'}']; 
+                pl_cov.YDataSource = ['S_y{',num2str(i),'}'];
+
+                % plot estimated mean
+                zk_x{i} = zk(1);
+                zk_y{i} = zk(2);
+                pl_mean = scatter(zk_x{i}, zk_y{i},100, 'o', 'filled');
+                pl_mean.XDataSource = ['zk_x{',num2str(i),'}'];
+                pl_mean.YDataSource = ['zk_y{',num2str(i),'}'];
+            end
             
-            % plot estimated covariance
-            ellipse = obj.sigmaEllipse2D(zk, S);
-            S_x = ellipse(1,:); 
-            S_y = ellipse(2,:); 
-            pl_cov  = plot(S_x,S_y);
-            pl_cov.XDataSource = 'S_x'; 
-            pl_cov.YDataSource = 'S_y';
-            
-            % plot estimated mean
-            zk_x = zk(1);
-            zk_y = zk(2);
-            pl_mean = scatter(zk_x, zk_y,100, 'o', 'filled');
-            pl_mean.XDataSource = 'zk_x';
-            pl_mean.YDataSource = 'zk_y';
-            
-            for i=1:numel(measdata)
-                [zk,S] = obj.estimated_meas(est(i).x,est(i).P,measmodel);
-                ellipse = obj.sigmaEllipse2D(zk, S);
-                % variance
-                S_x = ellipse(1,:); 
-                S_y = ellipse(2,:);
-                % mean
-                zk_x = zk(1);
-                zk_y = zk(2);
+            for k=1:numel(measdata)
+                
                 % meas
-                meas_x = measdata{i}(1,:);
-                meas_y = measdata{i}(2,:);
+                meas_x = measdata{k}(1,:);
+                meas_y = measdata{k}(2,:);
+                
+                for i=1:n
+                    [zk,S] = obj.estimated_meas(est(k).x(:,i),est(k).P(:,:,i),measmodel);
+                    ellipse = obj.sigmaEllipse2D(zk, S);
+                    % variance
+                    S_x{i} = ellipse(1,:); 
+                    S_y{i} = ellipse(2,:);
+                    % mean
+                    zk_x{i} = zk(1);
+                    zk_y{i} = zk(2);
+                end
                 
                 refreshdata(fig,'caller');
                 drawnow;
