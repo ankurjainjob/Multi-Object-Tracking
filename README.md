@@ -8,6 +8,7 @@ Implementation of the following algorithms:
 - [x] Gaussian Sum Filter (GSF)
 
 The main class is located at [HA01/singleobjectracker.m](./HA01/singleobjectracker.m)
+Simulations can be done using either [HA01/main.m](./HA01/main.m) or [HA01/simulation1_m.slx](./HA01/simulation1_m.m)
 
 ## Home-Assignment 02 (HA02) - Tracking n Objects in Clutter
 Implementation of the following algorithms:
@@ -16,6 +17,7 @@ Implementation of the following algorithms:
 - [ ] Track-oriented Multiple Hypothesis Tracker (MHT)
 
 The main class is located at [HA02/n_objectracker.m](./HA02/n_objectracker.m)
+Simulations can be done using either [HA02/main.m](./HA02/main.m) or [HA02/simulation2_m.m](./HA02/simulation2_m.m)
 
 ## Home-Assignment 03 (HA03) - Random Finite Sets
 - [ ] Probability Hypothesis Density Filter (PHD)
