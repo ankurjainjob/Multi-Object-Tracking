@@ -7,14 +7,15 @@ Implementation of the following algorithms:
 - [x] Probabilistic Data Association Filter (PDA)
 - [x] Gaussian Sum Filter (GSF)
 
-These algorithms are located in [HA01/singleobjectracker.m](https://github.com/lucasrm25/Multi-Object-Tracking/blob/HA01_implementation/HA01/singleobjectracker.m)
+The main class is located at [HA01/singleobjectracker.m](https://github.com/lucasrm25/Multi-Object-Tracking/blob/HA01_implementation/HA01/singleobjectracker.m)
 
 ## Home-Assignment 02 (HA02) - Tracking n Objects in Clutter
 Implementation of the following algorithms:
-- [ ] Global Nearest Neighbors Filter (GNN)
-- [ ] Joint Probabilistic Data Association Filter (JPDA)
+- [x] Global Nearest Neighbors Filter (GNN)
+- [x] Joint Probabilistic Data Association Filter (JPDA)
 - [ ] Track-oriented Multiple Hypothesis Tracker (MHT)
 
+The main class is located at [HA02/n_objectracker.m](https://github.com/lucasrm25/Multi-Object-Tracking/blob/HA02_implementation/HA02/n_objectracker.m)
 
 ## Home-Assignment 03 (HA03) - Random Finite Sets
 - [ ] Probability Hypothesis Density Filter (PHD)
