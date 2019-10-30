@@ -25,7 +25,7 @@ K = 100;
 tbirth = zeros(nbirths,1);
 tdeath = zeros(nbirths,1);
         
-initial_state = repmat(struct('x',[],'P',eye(motion_model.d)),[1,nbirths]);
+initial_state = repmat(struct('x',[],'P',eye(motion_model.d)*1e0),[1,nbirths]);
         
 initial_state(1).x = [0; 0; 0; -10];        tbirth(1) = 1;   tdeath(1) = K;
 initial_state(2).x = [400; -600; -10; 5];   tbirth(2) = 1;   tdeath(2) = K;
@@ -48,12 +48,12 @@ density_class_handle = feval(@GaussianDensity);    %density class handle
 tracker = n_objectracker();
 tracker = tracker.initialize(density_class_handle,P_G,meas_model.d,w_min,merging_threshold,M);
 
-[x_GNN, P_GNN] = GNNfilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
-% [x_JPDA, P_JPDA] = JPDAfilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
-% TOMHTestimates = TOMHT(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
+% [x_est, P_est] = GNNfilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
+[x_est, P_est] = JPDAfilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
+% [x_est, P_est] = TOMHT(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
 
 
-est = struct('x',x_GNN, 'P', P_GNN);
+est = struct('x',x_est, 'P', P_est);
 animate = Animate_2D_tracking();
 animate.animate(est, initial_state, measdata, meas_model, range_c);
 
@@ -65,8 +65,8 @@ grid on
 for i = 1:nbirths
     h1 = plot(cell2mat(cellfun(@(x) x(1,i), objectdata.X, 'UniformOutput', false)), ...
         cell2mat(cellfun(@(x) x(2,i), objectdata.X, 'UniformOutput', false)), 'g', 'Linewidth', 2);
-    h2 = plot(cell2mat(cellfun(@(x) x(1,i), x_GNN, 'UniformOutput', false)), ...
-        cell2mat(cellfun(@(x) x(2,i), x_GNN, 'UniformOutput', false)), '-s', 'Linewidth', 1);
+    h2 = plot(cell2mat(cellfun(@(x) x(1,i), x_est, 'UniformOutput', false)), ...
+        cell2mat(cellfun(@(x) x(2,i), x_est, 'UniformOutput', false)), '-s', 'Linewidth', 1);
 %     pause(1);
 %     drawnow();
 end
