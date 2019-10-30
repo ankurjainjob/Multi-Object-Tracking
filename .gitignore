@@ -6,3 +6,9 @@
 *.mp4
 
 *.DS_Store
+
+HA02/MATLABGraderTestPackage/\+reference/HA2/__MACOSX/
+
+HA01/MATLABGraderTestPackage/__MACOSX/
+
+HA01/MATLABGraderTestPackage/
