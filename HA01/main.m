@@ -23,12 +23,7 @@ sigma_q = 5;
 motion_model = motionmodel.cvmodel(T,sigma_q);
         
 %Create linear measurement model
-sigma_rren1oir2
-
-
-
-
-   q@
+sigma_r = 10;
 meas_model = measmodel.cvmeasmodel(sigma_r);
 
 %Generate true object data (noisy or noiseless) and measurement data
@@ -57,7 +52,7 @@ tracker = tracker.initialize(density_class_handle,P_G,meas_model.d,w_min,merging
 
 est = struct('x',x_GSF, 'P', P_GSF)
 animate = Animate_2D_tracking();
-animate.animate(est, tracker, initial_state, measdata, meas_model, range_c);
+animate.animate(est, initial_state, measdata, meas_model, range_c);
 
 
 

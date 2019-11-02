@@ -6,14 +6,20 @@ Implementation of the following algorithms:
 - [x] Nearest Neighbors Filter (NN)
 - [x] Probabilistic Data Association Filter (PDA)
 - [x] Gaussian Sum Filter (GSF)
-These algorithms are located in [HA01/singleobjectracker.m](https://github.com/lucasrm25/Multi-Object-Tracking/blob/HA01_implementation/HA01/singleobjectracker.m)
+
+The main class is located at [HA01/singleobjectracker.m](./HA01/singleobjectracker.m)
+
+Simulations can be done using either [HA01/main.m](./HA01/main.m) or [HA01/simulation.m](./HA01/simulation.m)
 
 ## Home-Assignment 02 (HA02) - Tracking n Objects in Clutter
 Implementation of the following algorithms:
-- [ ] Global Nearest Neighbors Filter (GNN)
-- [ ] Joint Probabilistic Data Association Filter (JPDA)
-- [ ] Multi Hypothesis Tracker (MHT)
+- [x] Global Nearest Neighbors Filter (GNN)
+- [x] Joint Probabilistic Data Association Filter (JPDA)
+- [x] Track-oriented Multiple Hypothesis Tracker (MHT)
 
+The main class is located at [HA02/n_objectracker.m](./HA02/n_objectracker.m)
+
+Simulations can be done using either [HA02/main.m](./HA02/main.m) or [HA02/simulation.m](./HA02/simulation.m)
 
 ## Home-Assignment 03 (HA03) - Random Finite Sets
 - [ ] Probability Hypothesis Density Filter (PHD)

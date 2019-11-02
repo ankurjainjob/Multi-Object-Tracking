@@ -32,6 +32,9 @@ classdef singleobjectracker
             %INITIATOR initializes singleobjectracker class
             %INPUT: density_class_handle: density class handle
             %       P_G: gating size in decimal --- scalar
+            %            in this case, P_G = Pr[ d^2 <= G ] = significance
+            %            level. The larger P_G, the G. P_G here is the
+            %            significance level. Common values is 0.99
             %       m_d: measurement dimension --- scalar
             %       wmin: allowed minimum hypothesis weight --- scalar
             %       merging_threshold: merging threshold --- scalar
@@ -245,11 +248,15 @@ classdef singleobjectracker
                     mk_new = size(z_ingate,2) + 1;
                     for i_new = 1:mk_new-1
                         pred_likelihood_log = obj.density.predictedLikelihood(p_old(i_old),z_ingate(:,i_new),measmodel);
+                        % w_new = w_old*(P_D*N(z_theta;zbar,S)/lambda_c);
                         w_new(end+1,1) = w_old(i_old) + pred_likelihood_log + log(sensormodel.P_D/sensormodel.intensity_c);
+                        % p_new = Kalman_Update(p_old)
                         p_new(end+1,1) = obj.density.update(p_old(i_old), z_ingate(:,i_new), measmodel);
                     end
-                    % for each hypothesis, create missed detection hypothesis;
+                    % for each hypothesis, create missed detection hypothesis
+                    % w_new = w_old*(1-P_D);
                     w_new(end+1,1) = w_old(i_old) + log(1 - sensormodel.P_D);
+                    % p_new = p_old
                     p_new(end+1,1) = p_old(i_old);
                 end
                 
