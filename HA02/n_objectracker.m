@@ -378,8 +378,8 @@ methods
                         S_i_h    = measmodel.H(old_H_i{i}(lh).x) * old_H_i{i}(lh).P * measmodel.H(old_H_i{i}(lh).x).';
                         zbar_i_h = measmodel.h(old_H_i{i}(lh).x);
                         log_w_i{i}(newidx) = log(sensormodel.P_D/sensormodel.intensity_c) ...
-                                       -1/2*log(det(2*pi*S_i_h)) ...
-                                       -1/2*(z(:,j) - zbar_i_h).' / S_i_h * (z(:,j) - zbar_i_h);
+                                            -1/2*log(det(2*pi*S_i_h)) ...
+                                            -1/2*(z(:,j) - zbar_i_h).' / S_i_h * (z(:,j) - zbar_i_h);
                         % update local hypothesis
                         H_i{i}(newidx) = obj.density.update(old_H_i{i}(lh), z(:,j) , measmodel);
                     end
@@ -399,8 +399,10 @@ methods
                 % 2.1. create 2D cost matrix;
                 L = inf(n,m+n);
                 for i=1:n
-                    L(i,1:m) = -log_w_i{i}( (old_H(h,i)-1)*(m) + (1:m) );
-                    L(i,m+i) = -log_w_i{i}( (old_H(h,i)-1)*(m) +  m+1 );
+                    startingidx = (old_H(h,i)-1)*(m+1) +1;
+                    finalidx    = old_H(h,i)*(m+1) -1;
+                    L(i,1:m) = -log_w_i{i}( startingidx:finalidx );     % must have size == m
+                    L(i,m+i) = -log_w_i{i}( finalidx+1 );               % size == 1 (misdetection hyp.)
                 end
 
                 % 2.2. obtain M best assignments using a provided M-best 2D assignment solver; 
@@ -414,14 +416,15 @@ methods
                     tr_AL = sum(L(sub2ind(size(L),1:n,Theta(:,iM)')));     % same as trace(A'*L)
                     % exp(-trace(A'*L)) gives in abs, but we want to keep w in log scale
                     % this is equal to multiply each selected weights
-                    log_w(end+1,1) = old_log_w(h) + (-tr_AL);
+                    log_w(end+1,1) = old_log_w(h) + (-tr_AL);   % wnew = wold * w_i=1 * w_i=2 * ...
                     
-                    Theta(Theta(:,iM)>m, iM) = m+1;
+                    Theta(Theta(:,iM)>m, iM) = m+1;     % set all misdetection hypothesis to the same index
+                    
+                    % update global hypothesis look-up table
                     H(end+1,1:n) = zeros(1,n);
                     for i=1:n
-                        % lets calculate the index of the new local hypothesis
-                        % for each object to update H
                         H(end,i) = (old_H(h,i)-1)*(m+1) + Theta(i,iM);
+                        1;
                     end
                 end
             end
@@ -440,9 +443,9 @@ methods
             
             for i=1:n
                 % 4. prune local hypotheses that are not included in any of the global hypotheses;
-                hyp_keep = unique(H(:,i)); %find(ismember(1:m+1, H(:,i)));
-                H_i{i}(hyp_keep).x
+                hyp_keep = unique(H(:,i));
                 H_i{i} = H_i{i}(hyp_keep);
+                log_w_i{i} = log_w_i{i}(hyp_keep);
                 % 5. Re-index global hypothesis look-up table;
                 for ri=1:numel(hyp_keep)
                     H( H(:,i) == hyp_keep(ri), i) = ri;
@@ -452,7 +455,7 @@ methods
             % 6. extract object state estimates from the global hypothesis with the highest weight;
             [~,idx_best] = max(log_w);
             for i=1:n
-                estimates_x{k}(:,i) = H_i{i}(idx_best).x;
+                estimates_x{k}(:,i)   = H_i{i}(idx_best).x;
                 estimates_P{k}(:,:,i) = H_i{i}(idx_best).P;
             end
             
@@ -464,6 +467,8 @@ methods
             old_H = H;
             old_H_i = H_i;
             old_log_w = log_w;
+            
+            k;
         end
 
 
