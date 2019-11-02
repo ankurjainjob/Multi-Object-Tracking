@@ -49,13 +49,12 @@ tracker = n_objectracker();
 tracker = tracker.initialize(density_class_handle,P_G,meas_model.d,w_min,merging_threshold,M);
 
 % [x_est, P_est] = GNNfilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
-[x_est, P_est] = JPDAfilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
-% [x_est, P_est] = TOMHT(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
+% [x_est, P_est] = JPDAfilter(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
+[x_est, P_est] = TOMHT(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
 
 
-est = struct('x',x_est, 'P', P_est);
 animate = Animate_2D_tracking();
-animate.animate(est, initial_state, measdata, meas_model, range_c);
+animate.animate(struct('x',x_est, 'P', P_est), initial_state, measdata, meas_model, range_c);
 
 
 figure
