@@ -344,6 +344,8 @@ methods
         old_log_w = log(1);
 
         
+        wbar = waitbar(0,sprintf('Calculating HO-MHT iterations - k=%d',0));
+        
         
         % ------- START RECURSION -------
         
@@ -424,7 +426,6 @@ methods
                     H(end+1,1:n) = zeros(1,n);
                     for i=1:n
                         H(end,i) = (old_H(h,i)-1)*(m+1) + Theta(i,iM);
-                        1;
                     end
                 end
             end
@@ -446,6 +447,7 @@ methods
                 hyp_keep = unique(H(:,i));
                 H_i{i} = H_i{i}(hyp_keep);
                 log_w_i{i} = log_w_i{i}(hyp_keep);
+                log_w_i{i} = normalizeLogWeights(log_w_i{i});
                 % 5. Re-index global hypothesis look-up table;
                 for ri=1:numel(hyp_keep)
                     H( H(:,i) == hyp_keep(ri), i) = ri;
@@ -455,8 +457,8 @@ methods
             % 6. extract object state estimates from the global hypothesis with the highest weight;
             [~,idx_best] = max(log_w);
             for i=1:n
-                estimates_x{k}(:,i)   = H_i{i}(idx_best).x;
-                estimates_P{k}(:,:,i) = H_i{i}(idx_best).P;
+                estimates_x{k}(:,i)   = H_i{i}( H(idx_best,i) ).x;
+                estimates_P{k}(:,:,i) = H_i{i}( H(idx_best,i) ).P;
             end
             
             % 7. predict each local hypothesis in each hypothesis tree.
@@ -468,12 +470,11 @@ methods
             old_H_i = H_i;
             old_log_w = log_w;
             
-            k;
+            waitbar(k/N, wbar, sprintf('Calculating HO-MHT iterations - k=%d/%d',k,N));
         end
-
+        close(wbar);
 
     end
-
 
 end
 end

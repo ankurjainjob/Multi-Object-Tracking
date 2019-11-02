@@ -15,7 +15,7 @@ Simulations can be done using either [HA01/main.m](./HA01/main.m) or [HA01/simul
 Implementation of the following algorithms:
 - [x] Global Nearest Neighbors Filter (GNN)
 - [x] Joint Probabilistic Data Association Filter (JPDA)
-- [ ] Track-oriented Multiple Hypothesis Tracker (MHT)
+- [x] Track-oriented Multiple Hypothesis Tracker (MHT)
 
 The main class is located at [HA02/n_objectracker.m](./HA02/n_objectracker.m)
 

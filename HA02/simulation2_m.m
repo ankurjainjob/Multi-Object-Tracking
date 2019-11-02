@@ -124,14 +124,13 @@ for i = 1:nbirths
         cell2mat(cellfun(@(x) x(2,i), GNNestimates, 'UniformOutput', false)), 'r-s', 'Linewidth', 1);
     h3 = plot(cell2mat(cellfun(@(x) x(1,i), JPDAestimates, 'UniformOutput', false)), ...
         cell2mat(cellfun(@(x) x(2,i), JPDAestimates, 'UniformOutput', false)), 'm-o', 'Linewidth', 1);
-%     h4 = plot(cell2mat(cellfun(@(x) x(1,i), TOMHTestimates, 'UniformOutput', false)), ...
-%         cell2mat(cellfun(@(x) x(2,i), TOMHTestimates, 'UniformOutput', false)), 'b-d', 'Linewidth', 1);
+    h4 = plot(cell2mat(cellfun(@(x) x(1,i), TOMHTestimates, 'UniformOutput', false)), ...
+        cell2mat(cellfun(@(x) x(2,i), TOMHTestimates, 'UniformOutput', false)), 'b-d', 'Linewidth', 1);
 end
 
 xlabel('x'); ylabel('y')
 
-% legend([h1 h2 h3 h4],'Ground Truth','GNN','JPDA','TOMHT', 'Location', 'best')
-legend([h1 h2 h3],'Ground Truth','GNN','JPDA', 'Location', 'best')
+legend([h1 h2 h3 h4],'Ground Truth','GNN','JPDA','TOMHT', 'Location', 'best')
 
 
 set(gca,'FontSize',12) 

@@ -21,7 +21,7 @@ meas_model = measmodel.cvmeasmodel(sigma_r);
         
 %Creat ground truth model
 nbirths = 5;
-K = 100;
+K = 20;
 tbirth = zeros(nbirths,1);
 tdeath = zeros(nbirths,1);
         
@@ -53,8 +53,8 @@ tracker = tracker.initialize(density_class_handle,P_G,meas_model.d,w_min,merging
 [x_est, P_est] = TOMHT(tracker, initial_state, measdata, sensor_model, motion_model, meas_model);
 
 
-animate = Animate_2D_tracking();
-animate.animate(struct('x',x_est, 'P', P_est), initial_state, measdata, meas_model, range_c);
+% animate = Animate_2D_tracking();
+% animate.animate(struct('x',x_est, 'P', P_est), initial_state, measdata, meas_model, range_c);
 
 
 figure
