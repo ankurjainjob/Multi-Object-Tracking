@@ -307,19 +307,21 @@ methods
         %       state dimension) x (number of objects)
 
         % STEPS FOR MOT
-        % 1. for each local hypothesis in each hypothesis tree: 
-        % 1.1. implement ellipsoidal gating; 
-        % 1.2. calculate missed detection and predicted likelihood for each measurement inside the gate and make sure to save these for future use; 
-        % 1.3. create updated local hypotheses and make sure to save how these connects to the old hypotheses and to the new the measurements for future use;
-        % 2. for each predicted global hypothesis: 
-        % 2.1. create 2D cost matrix; 
-        % 2.2. obtain M best assignments using a provided M-best 2D assignment solver; 
-        % 2.3. update global hypothesis look-up table according to the M best assignment matrices obtained and use your new local hypotheses indexing;
-        % 3. normalise global hypothesis weights and implement hypothesis reduction technique: pruning and capping;
-        % 4. prune local hypotheses that are not included in any of the global hypotheses;
-        % 5. Re-index global hypothesis look-up table;
-        % 6. extract object state estimates from the global hypothesis with the highest weight;
-        % 7. predict each local hypothesis in each hypothesis tree.
+        % 1. for each local hypothesis in each hypothesis tree:
+            % 1.1. implement ellipsoidal gating;
+        % 2. disconsider measurements that do not fall inside any local hypothesis gate
+        % 3. for each local hypothesis in each hypothesis tree:
+            % 3.1. calculate missed detection and predicted likelihood for each measurement inside the gate and make sure to save these for future use; 
+            % 3.2. create updated local hypotheses and make sure to save how these connects to the old hypotheses and to the new the measurements for future use;
+        % 4. for each predicted global hypothesis: 
+            % 4.1. create 2D cost matrix; 
+            % 4.2. obtain M best assignments using a provided M-best 2D assignment solver; 
+            % 4.3. update global hypothesis look-up table according to the M best assignment matrices obtained and use your new local hypotheses indexing;
+        % 5. normalise global hypothesis weights and implement hypothesis reduction technique: pruning and capping;
+        % 6. prune local hypotheses that are not included in any of the global hypotheses;
+        % 7. Re-index global hypothesis look-up table;
+        % 8. extract object state estimates from the global hypothesis with the highest weight;
+        % 9. predict each local hypothesis in each hypothesis tree.
 
 
         % ------- ALLOCATE MEMORY -------
@@ -356,70 +358,75 @@ methods
             % number of measurements
             m = size(z,2);
 
-
-            % 1. for each local hypothesis in each hypothesis tree: 
-
-            H_i = cell(1,n);
+            DOIT = 1;
+            
+            % 1. for each local hypothesis in each hypothesis tree:
             idx_z_ingate = cell(1,n);  % structure: {object}[meas, local hyp. for object i]
-            log_w_i = cell(1,n);
             for i=1:n
-                n_i = length(old_H_i{i});  % number of local hypothesis for obj i 
+                n_i = length(old_H_i{i});
                 idx_z_ingate{i} = zeros(m,n_i);
-                
-                log_w_i{i} = -inf(1,n_i*(m+1));     % init vector with (log(0) = -Inf)
-                for lh=1:n_i       % lh = local hypothesis
-                    
+                for lh=1:n_i
                     % 1.1. implement ellipsoidal gating;
                     [~, idx_z_ingate{i}(:,lh)] = obj.density.ellipsoidalGating(old_H_i{i}(lh), z, measmodel, obj.gating.size);
-
-                    % 1.2. calculate missed detection and predicted likelihood for each measurement inside the gate and make sure to save these for future use;
-                    % 1.3. create updated local hypotheses and make sure to save how these connects to the old hypotheses and to the new the measurements for future use;
+                end
+            end
+            % 2. disconsider measurements that do not fall inside any local hypothesis gate
+            idx_clutter = sum(cell2mat(idx_z_ingate)') == 0;
+            z = z(:,~idx_clutter);
+            m = sum(~idx_clutter);
+            idx_z_ingate = cellfun( @(idx_i) idx_i(~idx_clutter,:) ,idx_z_ingate, 'UniformOutput' ,false);
+            
+            
+            % 3. for each local hypothesis in each hypothesis tree:
+            H_i = cell(1,n);
+            log_w_i = cell(1,n);
+            for i=1:n
+                n_i = length(old_H_i{i});  % number of local hypothesis for obj i                 
+                log_w_i{i} = -inf(1,n_i*(m+1));     % init vector with (log(0) = -Inf)
+                for lh=1:n_i       % lh = local hypothesis
                     for j=find(idx_z_ingate{i}(:,lh))'
-                        % index of the new local hypothesis
-                        newidx = (lh-1)*(m+1) + j;
-                        % predicted likelihood * P_D/lambda_c (log scale)
+                        newidx = (lh-1)*(m+1) + j;  % index of the new local hypothesis
+                        
+                        % 3.1. calculate predicted likelihood for each measurement inside the gate
                         S_i_h    = measmodel.H(old_H_i{i}(lh).x) * old_H_i{i}(lh).P * measmodel.H(old_H_i{i}(lh).x).';
                         zbar_i_h = measmodel.h(old_H_i{i}(lh).x);
                         log_w_i{i}(newidx) = log(sensormodel.P_D/sensormodel.intensity_c) ...
                                             -1/2*log(det(2*pi*S_i_h)) ...
                                             -1/2*(z(:,j) - zbar_i_h).' / S_i_h * (z(:,j) - zbar_i_h);
-                        % update local hypothesis
+                        % 3.2. create updated local hypotheses
                         H_i{i}(newidx) = obj.density.update(old_H_i{i}(lh), z(:,j) , measmodel);
                     end
                     newidx = (lh)*(m+1);
-                    % misdetection likelihood
+                    % 3.1. calculate missed detection likelihood
                     log_w_i{i}(newidx) = log(1-sensormodel.P_D);
-                    % misdetection hypothesis
+                    % 3.2. create updated misdetectionlocal hypotheses
                     H_i{i}(newidx) = old_H_i{i}(lh);
                 end
             end
             
-            % 1.4 disconsider measurements that do not fall inside any object gates
-%             idx_clutter = sum(isinf(cell2mat(log_w_i'))) == n;
-%             z = z(:,~idx_clutter(1:end-1))  % disconsider last one which is misdetection hyp.
-%             m = sum(~idx_clutter)-1;
-            
-            % 2. for each old predicted global hypothesis:
+            % 4. for each old predicted global hypothesis:
             log_w = [];
-            H = [];
+            H     = [];
             for h=1:size(old_H,1)
                     
-                % 2.1. create 2D cost matrix;
+                % 4.1. create 2D cost matrix;
                 L = inf(n,m+n);
                 for i=1:n
+                    % given a global hypothesis lets find the correspondent
+                    % local hypothesis weights in the vector for each object
                     startingidx = (old_H(h,i)-1)*(m+1) +1;
                     finalidx    = old_H(h,i)*(m+1) -1;
                     L(i,1:m) = -log_w_i{i}( startingidx:finalidx );     % must have size == m
                     L(i,m+i) = -log_w_i{i}( finalidx+1 );               % size == 1 (misdetection hyp.)
                 end
 
-                % 2.2. obtain M best assignments using a provided M-best 2D assignment solver; 
+                % 4.2. obtain M best assignments using a provided M-best 2D assignment solver; 
                 M = obj.reduction.M;    % number of hypothesis at each step
                 [Theta,~,gain] = kBest2DAssign(L,M);
                 M = length(gain);       % there might be not enough hypothesis available
                 assert( all(gain~=-1), 'Assignment problem is unfeasible');
 
-                % 2.3. update global hypothesis look-up table according to the M best assignment matrices obtained and use your new local hypotheses indexing;
+                % 4.3. update global hypothesis look-up table according to the M best assignment matrices obtained and use your new local hypotheses indexing;
                 for iM =1:M
                     tr_AL = sum(L(sub2ind(size(L),1:n,Theta(:,iM)')));     % same as trace(A'*L)
                     % exp(-trace(A'*L)) gives in abs, but we want to keep w in log scale
@@ -436,7 +443,7 @@ methods
                 end
             end
 
-            % 3. normalise global hypothesis weights and implement hypothesis reduction technique: pruning and capping;
+            % 5. normalise global hypothesis weights and implement hypothesis reduction technique: pruning and capping;
             log_w = normalizeLogWeights(log_w);
             % prune
             [log_w, hyp] = hypothesisReduction.prune( log_w, 1:length(log_w), obj.reduction.w_min );
@@ -449,25 +456,25 @@ methods
             
             
             for i=1:n
-                % 4. prune local hypotheses that are not included in any of the global hypotheses;
+                % 6. prune local hypotheses that are not included in any of the global hypotheses;
                 hyp_keep = unique(H(:,i));
                 H_i{i} = H_i{i}(hyp_keep);
                 log_w_i{i} = log_w_i{i}(hyp_keep);
                 log_w_i{i} = normalizeLogWeights(log_w_i{i});
-                % 5. Re-index global hypothesis look-up table;
+                % 7. Re-index global hypothesis look-up table;
                 for ri=1:numel(hyp_keep)
                     H( H(:,i) == hyp_keep(ri), i) = ri;
                 end
             end
 
-            % 6. extract object state estimates from the global hypothesis with the highest weight;
+            % 8. extract object state estimates from the global hypothesis with the highest weight;
             [~,idx_best] = max(log_w);
             for i=1:n
                 estimates_x{k}(:,i)   = H_i{i}( H(idx_best,i) ).x;
                 estimates_P{k}(:,:,i) = H_i{i}( H(idx_best,i) ).P;
             end
             
-            % 7. predict each local hypothesis in each hypothesis tree.
+            % 9. predict each local hypothesis in each hypothesis tree.
             for i=1:n
                 H_i{i} = arrayfun(@(s) obj.density.predict(s,motionmodel), H_i{i} );
             end
@@ -475,13 +482,37 @@ methods
             old_H = H;
             old_H_i = H_i;
             old_log_w = log_w;
+ 
             
             waitbar(k/N, wbar, sprintf('Calculating HO-MHT iterations - k=%d/%d',k,N));
         end
         close(wbar);
 
     end
+    
+end
+end
 
-end
-end
+
+% backup
+% 10. plot
+%     x1 = -1000:20:900;
+%     x2 = -1000:20:1000;
+%     [X1,X2] = meshgrid(x1,x2);
+%     for iM=1:M
+%         for i=1:n
+%             pX = 0*X1;
+%             mean = H_i{i}(H(iM,i)).x(1:2);
+%             cov  = H_i{i}(H(iM,i)).P(1:2,1:2);
+%             cov = (cov+cov')/2;
+%             w    = exp( log_w(i) );
+%             for ix1=1:numel(x1)
+%                 pX(:,ix1) = w * mvnpdf([X1(:,ix1),X2(:,ix1)],mean',cov);
+%             end
+%             subplot(2,2,i)
+%             surf(X1,X2,pX);
+%             shading interp 
+%             view(2);
+%         end
+%     end
 

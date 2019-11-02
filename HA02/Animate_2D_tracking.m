@@ -76,6 +76,7 @@ classdef Animate_2D_tracking
             pl_meas.XDataSource = 'meas_x';
             pl_meas.YDataSource = 'meas_y';
             
+            % initialize objects
             for i=1:n
                 [zk,S] = obj.estimated_meas(initial_state(i).x,initial_state(i).P,measmodel);
 
@@ -95,6 +96,8 @@ classdef Animate_2D_tracking
                 pl_mean.YDataSource = ['zk_y{',num2str(i),'}'];
             end
             
+            
+            % --- ITERATE ANIMATION ---
             for k=1:numel(measdata)
                 
                 % meas

@@ -1,3 +1,5 @@
+rng(1);
+
 %Choose object detection probability
 P_D = 0.9;
 %Choose clutter rate
@@ -21,7 +23,7 @@ meas_model = measmodel.cvmeasmodel(sigma_r);
         
 %Creat ground truth model
 nbirths = 5;
-K = 20;
+K = 100;
 tbirth = zeros(nbirths,1);
 tdeath = zeros(nbirths,1);
         
