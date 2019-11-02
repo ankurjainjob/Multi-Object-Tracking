@@ -1,4 +1,4 @@
-rng(1);
+% rng(1);
 
 %Choose object detection probability
 P_D = 0.9;

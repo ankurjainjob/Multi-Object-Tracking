@@ -306,7 +306,8 @@ methods
         %       each cell stores estimated object state of size (object
         %       state dimension) x (number of objects)
 
-        % STEPS FOR MOT
+        
+        % STEPS FOR TOMHT
         % 1. for each local hypothesis in each hypothesis tree:
             % 1.1. implement ellipsoidal gating;
         % 2. disconsider measurements that do not fall inside any local hypothesis gate
@@ -349,7 +350,7 @@ methods
         wbar = waitbar(0,sprintf('Calculating HO-MHT iterations - k=%d',0));
         
         
-        % ------- START RECURSION -------
+        % ------- START TRACKING -------
         
         for k=1:N
 
