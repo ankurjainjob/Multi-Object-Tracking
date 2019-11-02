@@ -365,7 +365,8 @@ methods
             for i=1:n
                 n_i = length(old_H_i{i});  % number of local hypothesis for obj i 
                 idx_z_ingate{i} = zeros(m,n_i);
-                log_w_i{i} = -inf(1,n_i*(m+1));     % log(0) = -Inf
+                
+                log_w_i{i} = -inf(1,n_i*(m+1));     % init vector with (log(0) = -Inf)
                 for lh=1:n_i       % lh = local hypothesis
                     
                     % 1.1. implement ellipsoidal gating;
@@ -392,7 +393,12 @@ methods
                     H_i{i}(newidx) = old_H_i{i}(lh);
                 end
             end
-
+            
+            % 1.4 disconsider measurements that do not fall inside any object gates
+%             idx_clutter = sum(isinf(cell2mat(log_w_i'))) == n;
+%             z = z(:,~idx_clutter(1:end-1))  % disconsider last one which is misdetection hyp.
+%             m = sum(~idx_clutter)-1;
+            
             % 2. for each old predicted global hypothesis:
             log_w = [];
             H = [];
